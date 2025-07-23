@@ -1,9 +1,13 @@
+// lib/models/driver.dart
 class Driver {
   final int id;
   final String name;
   final String email;
   final String phone;
   final String companyName;
+  final String avatar;
+  bool isPending;
+  bool isDeleted;
 
   Driver({
     required this.id,
@@ -11,6 +15,9 @@ class Driver {
     required this.email,
     required this.phone,
     required this.companyName,
+    required this.avatar,
+    this.isPending = true,
+    this.isDeleted = false,
   });
 
   factory Driver.fromJson(Map<String, dynamic> json) {
@@ -20,6 +27,9 @@ class Driver {
       email: json['email'] as String? ?? '',
       phone: json['phone'] as String? ?? '',
       companyName: json['companyName'] as String? ?? '',
+      avatar: json['avatar'] as String? ?? '',
+      isPending: json['isPending'] as bool? ?? true,
+      isDeleted: json['isDeleted'] as bool? ?? false,
     );
   }
 
@@ -30,6 +40,9 @@ class Driver {
       'email': email,
       'phone': phone,
       'companyName': companyName,
+      'avatar': avatar,
+      'isPending': isPending,
+      'isDeleted': isDeleted,
     };
   }
 }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../api_service.dart';
 import '../models/auth_request.dart';
 import 'main_screen.dart';
@@ -36,7 +35,9 @@ class _AuthScreenState extends State<AuthScreen> {
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context).translate('error', args: {'error': e.toString()}))),
+        SnackBar(
+            content: Text(AppLocalizations.of(context)
+                .translate('error', args: {'error': e.toString()}))),
       );
     }
     setState(() {
@@ -47,7 +48,8 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(AppLocalizations.of(context).translate('login'))),
+      appBar:
+          AppBar(title: Text(AppLocalizations.of(context).translate('login'))),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -73,7 +75,8 @@ class _AuthScreenState extends State<AuthScreen> {
                 ? const CircularProgressIndicator()
                 : ElevatedButton(
                     onPressed: _login,
-                    child: Text(AppLocalizations.of(context).translate('login')),
+                    child:
+                        Text(AppLocalizations.of(context).translate('login')),
                   ),
           ],
         ),

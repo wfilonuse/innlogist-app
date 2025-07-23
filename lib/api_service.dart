@@ -2,13 +2,11 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:inn_logist_app/models/document.dart';
-import 'package:inn_logist_app/models/location.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path/path.dart' as path;
 import 'database_helper.dart';
 import 'models/order.dart';
 import 'models/driver.dart';
-import 'models/transport.dart';
 import 'models/expense.dart';
 import 'models/downloaded_file.dart';
 import 'models/report.dart';
@@ -33,7 +31,7 @@ class ApiService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('token', authResponse.token);
       await _dbHelper.upsertDriver(authResponse.driver);
-      await _dbHelper.upsertTransport(authResponse.transport);
+      // await _dbHelper.upsertTransport(authResponse.transport);
       return authResponse;
     } else {
       throw Exception('Failed to login: ${response.statusCode}');
@@ -145,10 +143,10 @@ class ApiService {
     }
   }
 
-  Future<void> updateProgress(int id, Progress progress) async {
+  Future<void> updateProgress(int orderId, Progress progress) async {
     final token = await _getToken();
     final response = await http.post(
-      Uri.parse('${BuildConfig.baseUrl}/progress/check/$id'),
+      Uri.parse('${BuildConfig.baseUrl}/progress/check/$orderId'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -158,12 +156,7 @@ class ApiService {
     if (response.statusCode != 200) {
       throw Exception('Failed to update progress: ${response.statusCode}');
     }
-    await _dbHelper.upsertOrderProgress(
-        id,
-        progress.position,
-        Location(lat: progress.address.lat, lng: progress.address.lng),
-        progress.address.address,
-        progress.address.dateAt);
+    await _dbHelper.upsertProgress(progress, orderId);
   }
 
   Future<List<Document>> getDocuments(int orderId) async {

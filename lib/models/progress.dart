@@ -1,7 +1,8 @@
+// lib/models/progress.dart
 import 'address.dart';
 
 class Progress {
-  final int? id; // Додано ID для унікальної ідентифікації
+  final int? id;
   final String name;
   final String date;
   final String type;
@@ -12,6 +13,7 @@ class Progress {
   final String statusIdHistory;
   final String statusName;
   bool isPending;
+  bool isDeleted;
 
   Progress({
     this.id,
@@ -24,7 +26,8 @@ class Progress {
     required this.statusId,
     required this.statusIdHistory,
     required this.statusName,
-    this.isPending = false,
+    this.isPending = true,
+    this.isDeleted = false,
   });
 
   factory Progress.fromJson(Map<String, dynamic> json) {
@@ -41,7 +44,8 @@ class Progress {
       statusId: json['status_id'] as String? ?? '',
       statusIdHistory: json['status_id_history'] as String? ?? '',
       statusName: json['status_name'] as String? ?? '',
-      isPending: json['isPending'] as bool? ?? false,
+      isPending: json['isPending'] as bool? ?? true,
+      isDeleted: json['isDeleted'] as bool? ?? false,
     );
   }
 
@@ -58,6 +62,7 @@ class Progress {
       'status_id_history': statusIdHistory,
       'status_name': statusName,
       'isPending': isPending,
+      'isDeleted': isDeleted,
     };
   }
 }

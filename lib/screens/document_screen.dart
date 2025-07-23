@@ -1,10 +1,12 @@
+// lib/screens/document_screen.dart
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:inn_logist_app/models/downloaded_file.dart';
+import 'package:inn_logist_app/services/connectivity_service.dart';
 import '../api_service.dart';
 import '../database_helper.dart';
 import '../models/document.dart';
 import '../l10n/app_localizations.dart';
-import '../constants.dart';
 
 class DocumentScreen extends StatefulWidget {
   const DocumentScreen({super.key});
@@ -22,20 +24,19 @@ class _DocumentScreenState extends State<DocumentScreen> {
 
   Future<void> _loadDocuments() async {
     if (_orderIdController.text.isNotEmpty) {
-      setState(() {
-        _isLoading = true;
-      });
+      _isLoading = true;
       try {
-        _documents = await _apiService.getDocuments(int.parse(_orderIdController.text));
+        _documents =
+            await _apiService.getDocuments(int.parse(_orderIdController.text));
       } catch (e) {
         _documents = await _dbHelper.getDocuments();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context).translate('error', args: {'error': e.toString()}))),
+          SnackBar(
+              content: Text(AppLocalizations.of(context)
+                  .translate('error', args: {'error': e.toString()}))),
         );
       }
-      setState(() {
-        _isLoading = false;
-      });
+      _isLoading = false;
     }
   }
 
@@ -44,22 +45,38 @@ class _DocumentScreenState extends State<DocumentScreen> {
     final pickedFile = await picker.pickImage(source: ImageSource.camera);
     if (pickedFile != null && _orderIdController.text.isNotEmpty) {
       try {
-        final document = await _apiService.uploadDocument(int.parse(_orderIdController.text), 1, pickedFile.path);
+        final document = await _apiService.uploadDocument(
+            int.parse(_orderIdController.text), 1, pickedFile.path);
         await _dbHelper.upsertDownloadedFile(DownloadedFile(
           id: document.id,
           orderId: int.parse(_orderIdController.text),
           fileName: document.fileName,
         ));
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context).translate('progressUpdated'))),
+          SnackBar(
+              content: Text(
+                  AppLocalizations.of(context).translate('progressUpdated'))),
         );
         _loadDocuments();
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context).translate('error', args: {'error': e.toString()}))),
+          SnackBar(
+              content: Text(AppLocalizations.of(context)
+                  .translate('error', args: {'error': e.toString()}))),
         );
       }
     }
+  }
+
+  Future<void> _deleteDocument(Document document) async {
+    final hasInternet = await ConnectivityService().hasInternetConnection();
+    if (hasInternet) {
+      await _apiService.deleteDocument(document.id);
+      await _dbHelper.deleteDocument(document.id); // Add deleteDocument method
+    } else {
+      await _dbHelper.markForDeletionDocument(document.id);
+    }
+    _loadDocuments();
   }
 
   @override
@@ -98,14 +115,18 @@ class _DocumentScreenState extends State<DocumentScreen> {
                             icon: const Icon(Icons.delete),
                             onPressed: () async {
                               try {
-                                await _api_service.deleteDocument(document.id);
+                                await _deleteDocument(document);
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(AppLocalizations.of(context).translate('progressUpdated'))),
+                                  SnackBar(
+                                      content: Text(AppLocalizations.of(context)
+                                          .translate('progressUpdated'))),
                                 );
-                                _loadDocuments();
                               } catch (e) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(AppLocalizations.of(context).translate('error', args: {'error': e.toString()}))),
+                                  SnackBar(
+                                      content: Text(AppLocalizations.of(context)
+                                          .translate('error',
+                                              args: {'error': e.toString()}))),
                                 );
                               }
                             },

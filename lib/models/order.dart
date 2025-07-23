@@ -1,3 +1,4 @@
+// lib/models/order.dart
 import 'address.dart';
 import 'cargo.dart';
 import 'document.dart';
@@ -20,6 +21,8 @@ class Order {
   final String uploadDate;
   final List<Document> documents;
   final List<Location> locations;
+  bool isPending;
+  bool isDeleted;
 
   Order({
     required this.id,
@@ -37,6 +40,8 @@ class Order {
     required this.uploadDate,
     required this.documents,
     required this.locations,
+    this.isPending = true,
+    this.isDeleted = false,
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
@@ -68,6 +73,8 @@ class Order {
               ?.map((e) => Location.fromJson(e))
               .toList() ??
           [],
+      isPending: json['isPending'] as bool? ?? true,
+      isDeleted: json['isDeleted'] as bool? ?? false,
     );
   }
 
@@ -88,6 +95,8 @@ class Order {
       'uploadDate': uploadDate,
       'documents': documents.map((e) => e.toJson()).toList(),
       'locations': locations.map((e) => e.toJson()).toList(),
+      'isPending': isPending,
+      'isDeleted': isDeleted,
     };
   }
 }

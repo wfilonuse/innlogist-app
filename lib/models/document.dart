@@ -1,14 +1,19 @@
+// lib/models/document.dart
 class Document {
   final int id;
   final String name;
   final String fileName;
   final String scope;
+  bool isPending;
+  bool isDeleted;
 
   Document({
     required this.id,
     required this.name,
     required this.fileName,
     required this.scope,
+    this.isPending = true,
+    this.isDeleted = false,
   });
 
   factory Document.fromJson(Map<String, dynamic> json) {
@@ -17,6 +22,8 @@ class Document {
       name: json['name'] as String? ?? '',
       fileName: json['fileName'] as String? ?? '',
       scope: json['scope'] as String? ?? '',
+      isPending: json['isPending'] as bool? ?? true,
+      isDeleted: json['isDeleted'] as bool? ?? false,
     );
   }
 
@@ -26,6 +33,8 @@ class Document {
       'name': name,
       'fileName': fileName,
       'scope': scope,
+      'isPending': isPending,
+      'isDeleted': isDeleted,
     };
   }
 }

@@ -9,8 +9,6 @@ import '../widgets/geo_status_widget.dart';
 import '../widgets/order_progress_widget.dart';
 import '../models/address.dart';
 import '../l10n/app_localizations.dart';
-import '../build_config.dart';
-import '../constants.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -23,7 +21,6 @@ class _MapScreenState extends State<MapScreen> {
   final GeoService _geoService = GeoService.instance;
   final ConnectivityService _connectivityService = ConnectivityService();
   final TextEditingController _searchController = TextEditingController();
-  GoogleMapController? _mapController;
   Set<Polyline> _polylines = {};
   List<Address> _addresses = [];
 
@@ -78,7 +75,6 @@ class _MapScreenState extends State<MapScreen> {
                   zoom: 10,
                 ),
                 onMapCreated: (controller) {
-                  _mapController = controller;
                   setState(() {
                     _polylines = {
                       Polyline(

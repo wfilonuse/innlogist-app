@@ -1,12 +1,14 @@
+// lib/models/expense.dart
 class Expense {
-  final int? id; // Додано ID для унікальної ідентифікації
+  final int? id;
   final int? fuel;
   final int? parking;
   final int? parts;
   final int? other;
-  final String comment;
+  final String? comment;
   final String time;
   bool isPending;
+  bool isDeleted;
 
   Expense({
     this.id,
@@ -14,9 +16,10 @@ class Expense {
     this.parking,
     this.parts,
     this.other,
-    required this.comment,
+    this.comment,
     required this.time,
-    this.isPending = false,
+    this.isPending = true,
+    this.isDeleted = false,
   });
 
   factory Expense.fromJson(Map<String, dynamic> json) {
@@ -26,9 +29,10 @@ class Expense {
       parking: json['parking'] as int?,
       parts: json['parts'] as int?,
       other: json['other'] as int?,
-      comment: json['comment'] as String? ?? '',
+      comment: json['comment'] as String?,
       time: json['time'] as String? ?? '',
-      isPending: json['isPending'] as bool? ?? false,
+      isPending: json['isPending'] as bool? ?? true,
+      isDeleted: json['isDeleted'] as bool? ?? false,
     );
   }
 
@@ -42,6 +46,7 @@ class Expense {
       'comment': comment,
       'time': time,
       'isPending': isPending,
+      'isDeleted': isDeleted,
     };
   }
 }

@@ -1,8 +1,8 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import '../api_service.dart';
 import '../database_helper.dart';
 import '../models/report.dart';
-import '../l10n/app_localizations.dart';
 import '../services/connectivity_service.dart';
 
 class ReportScreen extends StatefulWidget {
@@ -31,25 +31,27 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 
   Future<void> _loadReports() async {
-    setState(() {
-      _isLoading = true;
-    });
+    _isLoading = true;
     try {
       _reports = await _apiService.getAllReports();
     } catch (e) {
       _reports = await _dbHelper.getAllReports();
     }
-    setState(() {
-      _isLoading = false;
-    });
+    _isLoading = false;
   }
 
   Future<void> _syncReports() async {
     final pending = await _dbHelper.getPendingReports();
     for (var report in pending) {
       try {
-        await _apiService.updateReport(report);
-        await _dbHelper.markSynced(report.id!);
+        if (report.isDeleted) {
+          await _apiService.deleteReport(report.id!);
+          await _dbHelper
+              .deleteReport(report.id!); // Assuming add deleteReport method
+        } else {
+          await _apiService.updateReport(report);
+          await _dbHelper.markSynced(report.id!);
+        }
       } catch (e) {}
     }
     _loadReports();
@@ -222,8 +224,9 @@ class _ReportScreenState extends State<ReportScreen> {
       final hasInternet = await _connectivityService.hasInternetConnection();
       if (hasInternet) {
         await _apiService.deleteReport(report.id!);
+        await _dbHelper.deleteReport(report.id!);
       } else {
-        await _dbHelper.markForDeletion(report.id!);
+        await _dbHelper.markForDeletionReport(report.id!);
       }
       _loadReports();
     }

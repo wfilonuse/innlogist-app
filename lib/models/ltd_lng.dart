@@ -1,5 +1,6 @@
+// lib/models/ltd_lng.dart
 class LtdLng {
-  final int? id; // Додано ID для унікальної ідентифікації
+  final int? id;
   final double lat;
   final double lng;
   final int time;
@@ -7,6 +8,7 @@ class LtdLng {
   final double deviation;
   final int statusId;
   bool isPending;
+  bool isDeleted;
 
   LtdLng({
     this.id,
@@ -16,7 +18,8 @@ class LtdLng {
     required this.odometer,
     required this.deviation,
     required this.statusId,
-    this.isPending = false,
+    this.isPending = true,
+    this.isDeleted = false,
   });
 
   factory LtdLng.fromJson(Map<String, dynamic> json) {
@@ -28,7 +31,8 @@ class LtdLng {
       odometer: (json['odometer'] as num?)?.toDouble() ?? 0.0,
       deviation: (json['deviation'] as num?)?.toDouble() ?? 0.0,
       statusId: json['statusId'] as int? ?? 0,
-      isPending: json['isPending'] as bool? ?? false,
+      isPending: json['isPending'] as bool? ?? true,
+      isDeleted: json['isDeleted'] as bool? ?? false,
     );
   }
 
@@ -42,6 +46,7 @@ class LtdLng {
       'deviation': deviation,
       'statusId': statusId,
       'isPending': isPending,
+      'isDeleted': isDeleted,
     };
   }
 }

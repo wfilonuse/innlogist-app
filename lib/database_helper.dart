@@ -1,20 +1,16 @@
+// lib/database_helper.dart
 import 'dart:convert';
-import 'dart:math';
-import 'package:inn_logist_app/models/address.dart';
-import 'package:inn_logist_app/models/ltd_lng.dart' hide Order;
-import 'package:inn_logist_app/models/progress.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'models/order.dart';
-import 'models/driver.dart';
-import 'models/transport.dart';
-import 'models/expense.dart';
-import 'models/downloaded_file.dart';
-import 'models/report.dart';
-import 'models/way.dart';
-import 'models/location.dart';
-import 'models/status.dart';
+import '../models/document.dart';
+import '../models/driver.dart';
+import '../models/expense.dart';
+import '../models/ltd_lng.dart';
+import '../models/order.dart';
+import '../models/progress.dart';
+import '../models/report.dart';
+import '../models/downloaded_file.dart';
+import '../models/fuel_consumption.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -28,87 +24,24 @@ class DatabaseHelper {
     return _database!;
   }
 
-  Future<Database> _initDB(String fileName) async {
+  Future<Database> _initDB(String filePath) async {
     final dbPath = await getDatabasesPath();
-    final path = join(dbPath, fileName);
-
+    final path = join(dbPath, filePath);
     return await openDatabase(path, version: 1, onCreate: _createDB);
   }
 
   Future _createDB(Database db, int version) async {
     await db.execute('''
-      CREATE TABLE orders (
-        id INTEGER PRIMARY KEY,
-        status TEXT,
-        client_name TEXT,
-        client_phone TEXT,
-        progress TEXT,
-        cargo TEXT,
-        current_price REAL,
-        currency TEXT,
-        payment_type TEXT,
-        arrival_time TEXT,
-        addresses TEXT,
-        download_date TEXT,
-        upload_date TEXT,
-        documents TEXT,
-        locations TEXT
-      )
-    ''');
-
-    await db.execute('''
-      CREATE TABLE drivers (
-        id INTEGER PRIMARY KEY,
-        name TEXT,
-        email TEXT,
-        phone TEXT,
-        avatar TEXT,
-        company_name TEXT
-      )
-    ''');
-
-    await db.execute('''
-      CREATE TABLE transports (
-        id INTEGER PRIMARY KEY,
-        number TEXT,
-        status_id INTEGER,
-        model TEXT,
-        tonnage INTEGER,
-        monitoring TEXT,
-        company TEXT,
-        type TEXT,
-        rolling_stock_type TEXT,
-        avatar TEXT
-      )
-    ''');
-
-    await db.execute('''
       CREATE TABLE expenses (
-        id TEXT PRIMARY KEY,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         fuel INTEGER,
-        fuel_liters INTEGER,
         parking INTEGER,
         parts INTEGER,
         other INTEGER,
         comment TEXT,
-        fuel_consumption INTEGER,
-        buy_time TEXT
-      )
-    ''');
-
-    await db.execute('''
-      CREATE TABLE downloaded_files (
-        id INTEGER PRIMARY KEY,
-        order_id INTEGER,
-        file_name TEXT
-      )
-    ''');
-
-    await db.execute('''
-      CREATE TABLE ways (
-        id INTEGER PRIMARY KEY,
-        order_id INTEGER,
-        list TEXT
+        time TEXT,
+        isPending INTEGER DEFAULT 1,
+        isDeleted INTEGER DEFAULT 0
       )
     ''');
 
@@ -120,39 +53,427 @@ class DatabaseHelper {
         parts INTEGER,
         other INTEGER,
         distance REAL,
-        distance_empty REAL,
+        distanceEmpty REAL,
         duration TEXT,
         amount INTEGER,
-        amount_fact INTEGER,
+        amountFact INTEGER,
         orders INTEGER,
-        date_from TEXT,
-        date_to TEXT,
-        fuel_balance_start_current_month INTEGER,
-        last_trip_days INTEGER,
-        expenses INTEGER
+        dateFrom TEXT,
+        dateTo TEXT,
+        fuelBalanceStartCurrentMonth INTEGER,
+        lastTripDays INTEGER,
+        expenses INTEGER,
+        isPending INTEGER DEFAULT 1,
+        isDeleted INTEGER DEFAULT 0
       )
     ''');
 
     await db.execute('''
-      CREATE TABLE statuses (
+      CREATE TABLE orders (
         id INTEGER PRIMARY KEY,
+        status TEXT,
+        clientName TEXT,
+        clientPhone TEXT,
+        cargo TEXT,
+        currentPrice REAL,
+        currency TEXT,
+        paymentType TEXT,
+        arrivalTime TEXT,
+        downloadDate TEXT,
+        uploadDate TEXT,
+        addresses TEXT,
+        documents TEXT,
+        locations TEXT,
+        progress TEXT,
+        isPending INTEGER DEFAULT 1,
+        isDeleted INTEGER DEFAULT 0
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE progress (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         order_id INTEGER,
+        name TEXT,
+        date TEXT,
+        type TEXT,
+        position INTEGER,
+        completed INTEGER,
         address TEXT,
+        statusId TEXT,
+        statusIdHistory TEXT,
+        statusName TEXT,
+        isPending INTEGER DEFAULT 1,
+        isDeleted INTEGER DEFAULT 0
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE locations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_id INTEGER,
         lat REAL,
         lng REAL,
-        date TEXT
+        time INTEGER,
+        odometer REAL,
+        deviation REAL,
+        statusId INTEGER,
+        isPending INTEGER DEFAULT 1,
+        isDeleted INTEGER DEFAULT 0
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE downloaded_files (
+        id INTEGER PRIMARY KEY,
+        orderId INTEGER,
+        fileName TEXT,
+        isPending INTEGER DEFAULT 1,
+        isDeleted INTEGER DEFAULT 0
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE drivers (
+        id INTEGER PRIMARY KEY,
+        name TEXT,
+        email TEXT,
+        phone TEXT,
+        companyName TEXT,
+        avatar TEXT,
+        isPending INTEGER DEFAULT 1,
+        isDeleted INTEGER DEFAULT 0
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE documents (
+        id INTEGER PRIMARY KEY,
+        name TEXT,
+        fileName TEXT,
+        scope TEXT,
+        isPending INTEGER DEFAULT 1,
+        isDeleted INTEGER DEFAULT 0
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE fuel_consumption (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        amount REAL,
+        date TEXT,
+        isPending INTEGER DEFAULT 1,
+        isDeleted INTEGER DEFAULT 0
       )
     ''');
   }
 
-  // Driver
-  Future<void> upsertDriver(Driver driver) async {
+  // Clear all local data
+  Future<void> clearLocalData() async {
     final db = await database;
-    await db.insert(
-      'drivers',
-      driver.toJson(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await db.execute('DELETE FROM expenses');
+    await db.execute('DELETE FROM reports');
+    await db.execute('DELETE FROM orders');
+    await db.execute('DELETE FROM progress');
+    await db.execute('DELETE FROM locations');
+    await db.execute('DELETE FROM downloaded_files');
+    await db.execute('DELETE FROM drivers');
+    await db.execute('DELETE FROM documents');
+    await db.execute('DELETE FROM fuel_consumption');
+  }
+
+  // Expense methods
+  Future<void> upsertExpense(Expense expense, {bool isPending = true}) async {
+    final db = await database;
+    final data = expense.toJson();
+    data['isPending'] = isPending ? 1 : 0;
+    await db.insert('expenses', data,
+        conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<List<Expense>> getAllExpenses() async {
+    final db = await database;
+    final maps = await db.query('expenses');
+    return maps.map((map) => Expense.fromJson(map)).toList();
+  }
+
+  Future<List<Expense>> getPendingExpenses() async {
+    final db = await database;
+    final maps =
+        await db.query('expenses', where: 'isPending = 1 AND isDeleted = 0');
+    return maps.map((map) => Expense.fromJson(map)).toList();
+  }
+
+  Future<void> deleteExpense(String key) async {
+    final db = await database;
+    await db.delete('expenses', where: 'time = ?', whereArgs: [key]);
+  }
+
+  Future<void> markForDeletionExpense(int id) async {
+    final db = await database;
+    await db.update('expenses', {'isDeleted': 1, 'isPending': 1},
+        where: 'id = ?', whereArgs: [id]);
+  }
+
+  // Report methods
+  Future<void> upsertReport(Report report, {bool isPending = true}) async {
+    final db = await database;
+    final data = report.toJson();
+    data['isPending'] = isPending ? 1 : 0;
+    await db.insert('reports', data,
+        conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<List<Report>> getAllReports() async {
+    final db = await database;
+    final maps = await db.query('reports');
+    return maps.map((map) => Report.fromJson(map)).toList();
+  }
+
+  Future<List<Report>> getPendingReports() async {
+    final db = await database;
+    final maps =
+        await db.query('reports', where: 'isPending = 1 AND isDeleted = 0');
+    return maps.map((map) => Report.fromJson(map)).toList();
+  }
+
+  Future<void> markSynced(int id) async {
+    final db = await database;
+    await db.update('reports', {'isPending': 0},
+        where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> deleteReport(int id) async {
+    final db = await database;
+    await db.delete('reports', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> markForDeletionReport(int id) async {
+    final db = await database;
+    await db.update('reports', {'isDeleted': 1, 'isPending': 1},
+        where: 'id = ?', whereArgs: [id]);
+  }
+
+  // Order methods
+  Future<void> upsertOrder(Order order, {bool isPending = true}) async {
+    final db = await database;
+    final data = {
+      'id': order.id,
+      'status': order.status,
+      'clientName': order.clientName,
+      'clientPhone': order.clientPhone,
+      'cargo': jsonEncode(order.cargo.toJson()),
+      'currentPrice': order.currentPrice,
+      'currency': order.currency,
+      'paymentType': order.paymentType,
+      'arrivalTime': order.arrivalTime,
+      'downloadDate': order.downloadDate,
+      'uploadDate': order.uploadDate,
+      'addresses': jsonEncode(order.addresses.map((e) => e.toJson()).toList()),
+      'documents': jsonEncode(order.documents.map((e) => e.toJson()).toList()),
+      'locations': jsonEncode(order.locations.map((e) => e.toJson()).toList()),
+      'progress': jsonEncode(order.progress.map((e) => e.toJson()).toList()),
+      'isPending': isPending ? 1 : 0,
+      'isDeleted': order.isDeleted ? 1 : 0,
+    };
+    await db.insert('orders', data,
+        conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<List<Order>> getAllOrders() async {
+    final db = await database;
+    final maps = await db.query('orders');
+    return maps
+        .map((map) => Order.fromJson({
+              'id': map['id'],
+              'status': map['status'],
+              'clientName': map['clientName'],
+              'clientPhone': map['clientPhone'],
+              'cargo': jsonDecode(map['cargo'] as String),
+              'currentPrice': map['currentPrice'],
+              'currency': map['currency'],
+              'paymentType': map['paymentType'],
+              'arrivalTime': map['arrivalTime'],
+              'downloadDate': map['downloadDate'],
+              'uploadDate': map['uploadDate'],
+              'addresses': jsonDecode(map['addresses'] as String),
+              'documents': jsonDecode(map['documents'] as String),
+              'locations': jsonDecode(map['locations'] as String),
+              'progress': jsonDecode(map['progress'] as String),
+              'isDeleted': map['isDeleted'] as int? ?? 0,
+            }))
+        .toList();
+  }
+
+  Future<List<Order>> getPendingOrders() async {
+    final db = await database;
+    final maps =
+        await db.query('orders', where: 'isPending = 1 AND isDeleted = 0');
+    return maps
+        .map((map) => Order.fromJson({
+              'id': map['id'],
+              'status': map['status'],
+              'clientName': map['clientName'],
+              'clientPhone': map['clientPhone'],
+              'cargo': jsonDecode(map['cargo'] as String),
+              'currentPrice': map['currentPrice'],
+              'currency': map['currency'],
+              'paymentType': map['paymentType'],
+              'arrivalTime': map['arrivalTime'],
+              'downloadDate': map['downloadDate'],
+              'uploadDate': map['uploadDate'],
+              'addresses': jsonDecode(map['addresses'] as String),
+              'documents': jsonDecode(map['documents'] as String),
+              'locations': jsonDecode(map['locations'] as String),
+              'progress': jsonDecode(map['progress'] as String),
+              'isDeleted': map['isDeleted'] as int? ?? 0,
+            }))
+        .toList();
+  }
+
+  Future<void> markForDeletionOrder(int id) async {
+    final db = await database;
+    await db.update('orders', {'isDeleted': 1, 'isPending': 1},
+        where: 'id = ?', whereArgs: [id]);
+  }
+
+  // Progress methods
+  Future<void> upsertProgress(Progress progress, int orderId,
+      {bool isPending = true}) async {
+    final db = await database;
+    final data = progress.toJson();
+    data['order_id'] = orderId;
+    data['isPending'] = isPending ? 1 : 0;
+    data['isDeleted'] = progress.isDeleted ? 1 : 0;
+    await db.insert('progress', data,
+        conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<List<Progress>> getPendingProgress() async {
+    final db = await database;
+    final maps =
+        await db.query('progress', where: 'isPending = 1 AND isDeleted = 0');
+    return maps.map((map) => Progress.fromJson(map)).toList();
+  }
+
+  Future<void> markForDeletionProgress(int id) async {
+    final db = await database;
+    await db.update('progress', {'isDeleted': 1, 'isPending': 1},
+        where: 'id = ?', whereArgs: [id]);
+  }
+
+  // Location / LtdLng methods
+  Future<void> upsertLocation(int orderId, LtdLng geoPoint,
+      {bool isPending = true}) async {
+    final db = await database;
+    final data = geoPoint.toJson();
+    data['order_id'] = orderId;
+    data['isPending'] = isPending ? 1 : 0;
+    data['isDeleted'] = geoPoint.isDeleted ? 1 : 0;
+    await db.insert('locations', data,
+        conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<List<LtdLng>> getPendingLocations() async {
+    final db = await database;
+    final maps =
+        await db.query('locations', where: 'isPending = 1 AND isDeleted = 0');
+    return maps.map((map) => LtdLng.fromJson(map)).toList();
+  }
+
+  Future<void> markForDeletionLocation(int id) async {
+    final db = await database;
+    await db.update('locations', {'isDeleted': 1, 'isPending': 1},
+        where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<double> getDeviation(int orderId) async {
+    return 0.0; // Placeholder for deviation logic
+  }
+
+  Future<void> deleteLocations(int orderId) async {
+    final db = await database;
+    await db.delete('locations', where: 'order_id = ?', whereArgs: [orderId]);
+  }
+
+  // DownloadedFile methods
+  Future<void> upsertDownloadedFile(DownloadedFile file,
+      {bool isPending = true}) async {
+    final db = await database;
+    final data = file.toJson();
+    data['isPending'] = isPending ? 1 : 0;
+    data['isDeleted'] = file.isDeleted ? 1 : 0;
+    await db.insert('downloaded_files', data,
+        conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<List<DownloadedFile>> getDownloadedFiles() async {
+    final db = await database;
+    final maps = await db.query('downloaded_files');
+    return maps.map((map) => DownloadedFile.fromJson(map)).toList();
+  }
+
+  Future<List<DownloadedFile>> getPendingDownloadedFiles() async {
+    final db = await database;
+    final maps = await db.query('downloaded_files',
+        where: 'isPending = 1 AND isDeleted = 0');
+    return maps.map((map) => DownloadedFile.fromJson(map)).toList();
+  }
+
+  Future<void> deleteDownloadedFile(int id) async {
+    final db = await database;
+    await db.delete('downloaded_files', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> markForDeletionDownloadedFile(int id) async {
+    final db = await database;
+    await db.update('downloaded_files', {'isDeleted': 1, 'isPending': 1},
+        where: 'id = ?', whereArgs: [id]);
+  }
+
+  // Document methods
+  Future<void> upsertDocument(Document document,
+      {bool isPending = true}) async {
+    final db = await database;
+    final data = document.toJson();
+    data['isPending'] = isPending ? 1 : 0;
+    data['isDeleted'] = document.isDeleted ? 1 : 0;
+    await db.insert('documents', data,
+        conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<List<Document>> getDocuments() async {
+    final db = await database;
+    final maps = await db.query('documents');
+    return maps.map((map) => Document.fromJson(map)).toList();
+  }
+
+  Future<List<Document>> getPendingDocuments() async {
+    final db = await database;
+    final maps =
+        await db.query('documents', where: 'isPending = 1 AND isDeleted = 0');
+    return maps.map((map) => Document.fromJson(map)).toList();
+  }
+
+  Future<void> deleteDocument(int id) async {
+    final db = await database;
+    await db.delete('documents', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> markForDeletionDocument(int id) async {
+    final db = await database;
+    await db.update('documents', {'isDeleted': 1, 'isPending': 1},
+        where: 'id = ?', whereArgs: [id]);
+  }
+
+  // Driver methods
+  Future<void> upsertDriver(Driver driver, {bool isPending = true}) async {
+    final db = await database;
+    final data = driver.toJson();
+    data['isPending'] = isPending ? 1 : 0;
+    data['isDeleted'] = driver.isDeleted ? 1 : 0;
+    await db.insert('drivers', data,
+        conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<Driver?> getDriver(int id) async {
@@ -162,319 +483,40 @@ class DatabaseHelper {
     return Driver.fromJson(maps.first);
   }
 
-  // Transport
-  Future<void> upsertTransport(Transport transport) async {
-    final db = await database;
-    await db.insert(
-      'transports',
-      transport.toJson(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
-  }
-
-  Future<Transport?> getTransport(int id) async {
-    final db = await database;
-    final maps = await db.query('transports', where: 'id = ?', whereArgs: [id]);
-    if (maps.isEmpty) return null;
-    return Transport.fromJson(maps.first);
-  }
-
-  // Expense
-  Future<void> upsertExpense(Expense expense) async {
-    final db = await database;
-    final existing = await db.query('expenses',
-        where: 'id = ?', whereArgs: ['${expense.fuel}_${expense.time}']);
-    if (existing.isNotEmpty) {
-      await db.update(
-        'expenses',
-        expense.toJson(),
-        where: 'id = ?',
-        whereArgs: ['${expense.fuel}_${expense.time}'],
-      );
-    } else {
-      await db.insert(
-        'expenses',
-        {
-          'id': '${expense.fuel}_${expense.time}',
-          ...expense.toJson(),
-        },
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-    }
-  }
-
-  Future<List<Expense>> getAllExpenses() async {
-    final db = await database;
-    final maps = await db.query('expenses');
-    return maps.map((map) => Expense.fromJson(map)).toList();
-  }
-
-  Future<void> deleteExpense(String id) async {
-    final db = await database;
-    await db.delete('expenses', where: 'id = ?', whereArgs: [id]);
-  }
-
-  // DownloadedFile
-  Future<void> upsertDownloadedFile(DownloadedFile file) async {
-    final db = await database;
-    await db.insert(
-      'downloaded_files',
-      file.toJson(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
-  }
-
-  Future<List<DownloadedFile>> getDownloadedFiles() async {
-    final db = await database;
-    final maps = await db.query('downloaded_files');
-    return maps.map((map) => DownloadedFile.fromJson(map)).toList();
-  }
-
-  Future<void> deleteDownloadedFile(int id) async {
-    final db = await database;
-    await db.delete('downloaded_files', where: 'id = ?', whereArgs: [id]);
-  }
-
-  // Way
-  Future<void> upsertLocation(int orderId, LtdLng location) async {
+  Future<List<Driver>> getPendingDrivers() async {
     final db = await database;
     final maps =
-        await db.query('ways', where: 'order_id = ?', whereArgs: [orderId]);
-    if (maps.isEmpty) {
-      await db.insert(
-        'ways',
-        {
-          'order_id': orderId,
-          'list': jsonEncode([location.toJson()]),
-        },
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-    } else {
-      final way = Way.fromJson(maps.first);
-      way.list.add(LatLng(location.lat, location.lng));
-      await db.update(
-        'ways',
-        {
-          'list': jsonEncode(way.list
-              .map((e) => {'lat': e.latitude, 'lng': e.longitude})
-              .toList())
-        },
-        where: 'order_id = ?',
-        whereArgs: [orderId],
-      );
-    }
+        await db.query('drivers', where: 'isPending = 1 AND isDeleted = 0');
+    return maps.map((map) => Driver.fromJson(map)).toList();
   }
 
-  Future<Way?> getWay(int orderId) async {
+  Future<void> markForDeletionDriver(int id) async {
     final db = await database;
-    final maps =
-        await db.query('ways', where: 'order_id = ?', whereArgs: [orderId]);
-    if (maps.isEmpty) return null;
-    return Way.fromJson(maps.first);
+    await db.update('drivers', {'isDeleted': 1, 'isPending': 1},
+        where: 'id = ?', whereArgs: [id]);
   }
 
-  Future<void> deleteLocations(int orderId) async {
+  // FuelConsumption methods
+  Future<void> upsertFuelConsumption(FuelConsumption fuel,
+      {bool isPending = true}) async {
     final db = await database;
-    await db.update(
-      'ways',
-      {'list': jsonEncode([])},
-      where: 'order_id = ?',
-      whereArgs: [orderId],
-    );
+    final data = fuel.toJson();
+    data['isPending'] = isPending ? 1 : 0;
+    data['isDeleted'] = fuel.isDeleted ? 1 : 0;
+    await db.insert('fuel_consumption', data,
+        conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  Future<LatLng?> getLastLocation(int orderId) async {
-    final way = await getWay(orderId);
-    if (way != null && way.list.isNotEmpty) {
-      return way.list.last;
-    }
-    return null;
-  }
-
-  // Report
-  Future<void> upsertReport(Report report) async {
+  Future<List<FuelConsumption>> getPendingFuelConsumption() async {
     final db = await database;
-    await db.insert(
-      'reports',
-      report.toJson(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    final maps = await db.query('fuel_consumption',
+        where: 'isPending = 1 AND isDeleted = 0');
+    return maps.map((map) => FuelConsumption.fromJson(map)).toList();
   }
 
-  Future<Report?> getReport(int id) async {
+  Future<void> markForDeletionFuelConsumption(int id) async {
     final db = await database;
-    final maps = await db.query('reports', where: 'id = ?', whereArgs: [id]);
-    if (maps.isEmpty) return null;
-    return Report.fromJson(maps.first);
-  }
-
-  // Order
-  Future<void> upsertOrder(Order order) async {
-    final db = await database;
-    await db.insert(
-      'orders',
-      order.toJson(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
-  }
-
-  Future<List<Order>> getAllOrders() async {
-    final db = await database;
-    final maps = await db.query('orders');
-    return maps.map((map) => Order.fromJson(map)).toList();
-  }
-
-  Future<Order?> getOrder(int id) async {
-    final db = await database;
-    final maps = await db.query('orders', where: 'id = ?', whereArgs: [id]);
-    if (maps.isEmpty) return null;
-    return Order.fromJson(maps.first);
-  }
-
-  Future<void> upsertOrderProgress(int orderId, int position, Location location,
-      String address, String time) async {
-    final db = await database;
-    final maps =
-        await db.query('orders', where: 'id = ?', whereArgs: [orderId]);
-    if (maps.isEmpty) return;
-
-    final order = Order.fromJson(maps.first);
-    bool isUpdate = false;
-    for (var progress in order.progress) {
-      if (progress.position == position) {
-        progress.address = Address(
-          address: address,
-          type: progress.type,
-          lat: location.lat,
-          lng: location.lng,
-          dateAt: time,
-        );
-        progress.completed = progress.completed == 1 ? 0 : 1;
-        isUpdate = true;
-        break;
-      }
-    }
-    if (!isUpdate) {
-      order.progress.add(Progress(
-        name: 'Point $position',
-        date: time,
-        type: 'unknown',
-        position: position,
-        completed: 1,
-        address: Address(
-            address: address,
-            type: 'unknown',
-            lat: location.lat,
-            lng: location.lng,
-            dateAt: time),
-        statusId: '',
-        statusIdHistory: '',
-        statusName: '',
-      ));
-    }
-    await db.update(
-      'orders',
-      {
-        'progress': jsonEncode(order.progress.map((e) => e.toJson()).toList()),
-      },
-      where: 'id = ?',
-      whereArgs: [orderId],
-    );
-
-    final statusMaps = await db.query('statuses',
-        where: 'order_id = ? AND id = ?', whereArgs: [orderId, position]);
-    if (statusMaps.isEmpty) {
-      await db.insert(
-        'statuses',
-        {
-          'order_id': orderId,
-          'id': position,
-          'address': address,
-          'lat': location.lat,
-          'lng': location.lng,
-          'date': time,
-        },
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-    } else {
-      await db.update(
-        'statuses',
-        {
-          'address': address,
-          'lat': location.lat,
-          'lng': location.lng,
-          'date': time,
-        },
-        where: 'order_id = ? AND id = ?',
-        whereArgs: [orderId, position],
-      );
-    }
-  }
-
-  Future<double> getDeviation(int orderId, LatLng currentPosition) async {
-    final db = await database;
-    final maps =
-        await db.query('orders', where: 'id = ?', whereArgs: [orderId]);
-    if (maps.isEmpty) return 0.0;
-
-    final order = Order.fromJson(maps.first);
-    final directions = order.locations;
-    if (directions.length < 2) return 0.0;
-
-    List<double> distances = [];
-    for (int i = 0; i < directions.length - 1; i++) {
-      final distance = _distanceToLine(
-        currentPosition,
-        LatLng(directions[i].lat, directions[i].lng),
-        LatLng(directions[i + 1].lat, directions[i + 1].lng),
-      );
-      distances.add(distance);
-    }
-    distances.sort();
-    return distances.isNotEmpty ? distances.first : 0.0;
-  }
-
-  double _distanceToLine(LatLng p, LatLng start, LatLng end) {
-    final double x = p.latitude;
-    final double y = p.longitude;
-    final double x1 = start.latitude;
-    final double y1 = start.longitude;
-    final double x2 = end.latitude;
-    final double y2 = end.longitude;
-
-    final double A = x - x1;
-    final double B = y - y1;
-    final double C = x2 - x1;
-    final double D = y2 - y1;
-
-    final double dot = A * C + B * D;
-    final double len_sq = C * C + D * D;
-    final double param = len_sq != 0 ? dot / len_sq : -1;
-
-    double xx, yy;
-    if (param < 0) {
-      xx = x1;
-      yy = y1;
-    } else if (param > 1) {
-      xx = x2;
-      yy = y2;
-    } else {
-      xx = x1 + param * C;
-      yy = y1 + param * D;
-    }
-
-    final double dx = x - xx;
-    final double dy = y - yy;
-    return sqrt(dx * dx + dy * dy);
-  }
-
-  Future<void> deleteAllOrders() async {
-    final db = await database;
-    await db.delete('orders');
-  }
-
-  Future<void> close() async {
-    final db = await database;
-    await db.close();
+    await db.update('fuel_consumption', {'isDeleted': 1, 'isPending': 1},
+        where: 'id = ?', whereArgs: [id]);
   }
 }

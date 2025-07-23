@@ -12,8 +12,6 @@ class GeoStatusWidget extends StatefulWidget {
 }
 
 class _GeoStatusWidgetState extends State<GeoStatusWidget> {
-  bool _hasGeoAccess = true;
-
   @override
   void initState() {
     super.initState();
@@ -23,9 +21,7 @@ class _GeoStatusWidgetState extends State<GeoStatusWidget> {
   Future<void> _checkGeoAccess() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      setState(() {
-        _hasGeoAccess = false;
-      });
+      setState(() {});
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(AppLocalizations.of(context).translate('noGeoAccess')),
@@ -39,9 +35,7 @@ class _GeoStatusWidgetState extends State<GeoStatusWidget> {
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
-      setState(() {
-        _hasGeoAccess = false;
-      });
+      setState(() {});
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content:
@@ -54,9 +48,7 @@ class _GeoStatusWidgetState extends State<GeoStatusWidget> {
               permission = await Geolocator.requestPermission();
               if (permission != LocationPermission.denied &&
                   permission != LocationPermission.deniedForever) {
-                setState(() {
-                  _hasGeoAccess = true;
-                });
+                setState(() {});
               }
             },
           ),

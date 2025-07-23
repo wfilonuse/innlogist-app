@@ -1,5 +1,6 @@
+// lib/models/report.dart
 class Report {
-  final int? id;
+  late final int? id;
   final int? fuel;
   final int? parking;
   final int? parts;
@@ -16,6 +17,7 @@ class Report {
   final int? lastTripDays;
   final int? expenses;
   bool isPending;
+  bool isDeleted;
 
   Report({
     this.id,
@@ -34,7 +36,8 @@ class Report {
     this.fuelBalanceStartCurrentMonth,
     this.lastTripDays,
     this.expenses,
-    this.isPending = false,
+    this.isPending = true,
+    this.isDeleted = false,
   });
 
   factory Report.fromJson(Map<String, dynamic> json) {
@@ -56,7 +59,8 @@ class Report {
           json['fuelBalanceStartCurrentMonth'] as int?,
       lastTripDays: json['lastTripDays'] as int?,
       expenses: json['expenses'] as int?,
-      isPending: json['isPending'] as bool? ?? false,
+      isPending: json['isPending'] as bool? ?? true,
+      isDeleted: json['isDeleted'] as bool? ?? false,
     );
   }
 
@@ -79,6 +83,7 @@ class Report {
       'lastTripDays': lastTripDays,
       'expenses': expenses,
       'isPending': isPending,
+      'isDeleted': isDeleted,
     };
   }
 }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:inn_logist_app/screens/auth_screen.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'orders_screen.dart';
 import 'profile_screen.dart';
 import 'expense_screen.dart';
