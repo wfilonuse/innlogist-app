@@ -1,0 +1,29 @@
+
+name: inn_logist_app
+description: A Flutter app for logistics drivers
+version: 1.0.0
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  http: ^1.2.2
+  shared_preferences: ^2.3.0
+  google_maps_flutter: ^2.9.0
+  image_picker: ^1.1.2
+  sqflite: ^2.3.0
+  path: ^1.8.3
+  connectivity_plus: ^6.0.5
+  geolocator: ^12.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  generate: true

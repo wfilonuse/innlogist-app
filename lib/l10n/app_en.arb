@@ -1,0 +1,22 @@
+{
+  "appTitle": "Inn Logist",
+  "login": "Login",
+  "logout": "Logout",
+  "orders": "Orders",
+  "profile": "Profile",
+  "expenses": "Expenses",
+  "map": "Map",
+  "documents": "Documents",
+  "reports": "Reports",
+  "searchAddress": "Search address",
+  "noInternet": "No internet connection. Data is stored locally.",
+  "noGeoAccess": "Location services disabled. Enable in settings.",
+  "noGeoPermission": "No location permission. Grant permission.",
+  "grantPermission": "Grant permission",
+  "orderProgress": "Order Progress",
+  "completed": "Completed",
+  "notCompleted": "Not completed",
+  "progressUpdated": "Progress updated",
+  "errorLoadingProgress": "Error loading progress: {error}",
+  "error": "Error: {error}"
+}

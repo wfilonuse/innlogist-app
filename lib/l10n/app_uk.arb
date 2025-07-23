@@ -1,0 +1,22 @@
+{
+  "appTitle": "Inn Logist",
+  "login": "Увійти",
+  "logout": "Вийти",
+  "orders": "Замовлення",
+  "profile": "Профіль",
+  "expenses": "Витрати",
+  "map": "Карта",
+  "documents": "Документи",
+  "reports": "Звіти",
+  "searchAddress": "Пошук адреси",
+  "noInternet": "Немає інтернет-з’єднання. Дані зберігаються локально.",
+  "noGeoAccess": "Служба геолокації відключена. Увімкніть у налаштуваннях.",
+  "noGeoPermission": "Немає доступу до геолокації. Надайте дозвіл.",
+  "grantPermission": "Надати дозвіл",
+  "orderProgress": "Прогрес замовлення",
+  "completed": "Виконано",
+  "notCompleted": "Не виконано",
+  "progressUpdated": "Прогрес оновлено",
+  "errorLoadingProgress": "Помилка завантаження прогресу: {error}",
+  "error": "Помилка: {error}"
+}
