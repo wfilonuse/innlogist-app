@@ -1,5 +1,7 @@
 {
+  "@@locale": "en",
   "appTitle": "Inn Logist",
+  "@appTitle": {},
   "login": "Login",
   "logout": "Logout",
   "orders": "Orders",
@@ -18,5 +20,15 @@
   "notCompleted": "Not completed",
   "progressUpdated": "Progress updated",
   "errorLoadingProgress": "Error loading progress: {error}",
-  "error": "Error: {error}"
+  "@errorLoadingProgress": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "error": "Error: {error}",
+  "@error": {
+    "placeholders": {
+      "error": {}
+    }
+  }
 }

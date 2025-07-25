@@ -1,7 +1,11 @@
 {
+  "@@locale": "uk",
   "appTitle": "Inn Logist",
+  "@appTitle": {},
   "login": "Увійти",
+  "@login": {},
   "logout": "Вийти",
+  "@logout": {},
   "orders": "Замовлення",
   "profile": "Профіль",
   "expenses": "Витрати",
@@ -18,5 +22,10 @@
   "notCompleted": "Не виконано",
   "progressUpdated": "Прогрес оновлено",
   "errorLoadingProgress": "Помилка завантаження прогресу: {error}",
+  "@errorLoadingProgress": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "error": "Помилка: {error}"
 }
