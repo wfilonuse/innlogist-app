@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import '../api_service.dart';
+import 'package:inn_logist_app/providers/progress_provider.dart';
+import 'package:provider/provider.dart';
+import '../providers/order_provider.dart';
 import '../models/progress.dart';
 import '../l10n/app_localizations.dart';
 import 'common/custom_loader.dart';
@@ -14,8 +16,6 @@ class OrderProgressWidget extends StatefulWidget {
 }
 
 class _OrderProgressWidgetState extends State<OrderProgressWidget> {
-  final ApiService _apiService = ApiService();
-  List<Progress> _progress = [];
   bool _isLoading = false;
 
   @override
@@ -28,14 +28,32 @@ class _OrderProgressWidgetState extends State<OrderProgressWidget> {
     setState(() {
       _isLoading = true;
     });
+    await Provider.of<OrderProvider>(context, listen: false)
+        .fetchItems(); // fetches all orders
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _updateProgress(int orderId, Progress progress) async {
+    setState(() {
+      _isLoading = true;
+    });
     try {
-      _progress = await _apiService.getProgress(widget.orderId);
+      await Provider.of<ProgressProvider>(context, listen: false)
+          .remoteService
+          .update(progress);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(
+                AppLocalizations.of(context).translate('progressUpdated'))),
+      );
+      await _loadProgress();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AppLocalizations.of(context).translate(
-              'errorLoadingProgress',
-              args: {'error': e.toString()})),
+          content: Text(AppLocalizations.of(context)
+              .translate('error', args: {'error': e.toString()})),
           backgroundColor: Colors.red,
         ),
       );
@@ -47,6 +65,10 @@ class _OrderProgressWidgetState extends State<OrderProgressWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final orders = Provider.of<OrderProvider>(context).items;
+    final order = orders.firstWhere((o) => o.id == widget.orderId);
+    final progressList = order.progress ?? [];
+
     return Positioned(
       bottom: 16,
       left: 16,
@@ -66,7 +88,7 @@ class _OrderProgressWidgetState extends State<OrderProgressWidget> {
                           fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
-                    ..._progress.map((progress) => ListTile(
+                    ...progressList.map((progress) => ListTile(
                           title: Text(progress.name),
                           subtitle: Text(
                             '${AppLocalizations.of(context).translate('completed')}: ${progress.completed == 1 ? AppLocalizations.of(context).translate('completed') : AppLocalizations.of(context).translate('notCompleted')}, ${AppLocalizations.of(context).translate('date')}: ${progress.date}',
@@ -75,25 +97,7 @@ class _OrderProgressWidgetState extends State<OrderProgressWidget> {
                               ? Icons.check_circle
                               : Icons.circle_outlined),
                           onTap: () async {
-                            try {
-                              await _apiService.updateProgress(
-                                  widget.orderId, progress);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                    content: Text(AppLocalizations.of(context)
-                                        .translate('progressUpdated'))),
-                              );
-                              _loadProgress();
-                            } catch (e) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(AppLocalizations.of(context)
-                                      .translate('error',
-                                          args: {'error': e.toString()})),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                            }
+                            await _updateProgress(widget.orderId, progress);
                           },
                         )),
                   ],

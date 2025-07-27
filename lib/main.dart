@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:inn_logist_app/routers/route_generator.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/auth_screen.dart';
@@ -15,7 +16,6 @@ import 'providers/report_provider.dart';
 import 'providers/address_provider.dart';
 import 'providers/fuel_provider.dart';
 import 'providers/location_provider.dart';
-import 'core/routing/route_generator.dart';
 import 'services/sync_service.dart';
 import 'services/connectivity_service.dart';
 

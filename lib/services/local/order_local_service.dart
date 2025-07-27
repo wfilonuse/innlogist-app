@@ -24,7 +24,7 @@ class OrderLocalService extends BaseDataService<Order> {
       'addresses': item.addresses.map((e) => e.toJson()).toList().toString(),
       'documents': item.documents.map((e) => e.toJson()).toList().toString(),
       'locations': item.locations.map((e) => e.toJson()).toList().toString(),
-      'progress': item.progress.map((e) => e.toJson()).toList().toString(),
+      'progress': item.progress?.map((e) => e.toJson()).toList().toString(),
       'isPending': item.isPending ? 1 : 0,
       'isDeleted': item.isDeleted ? 1 : 0,
     };

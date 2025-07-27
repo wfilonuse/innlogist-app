@@ -10,7 +10,7 @@ class Order {
   final String status;
   final String clientName;
   final String clientPhone;
-  final List<Progress> progress;
+  final List<Progress>? progress;
   final Cargo cargo;
   final double currentPrice;
   final String currency;
@@ -84,7 +84,7 @@ class Order {
       'status': status,
       'clientName': clientName,
       'clientPhone': clientPhone,
-      'progress': progress.map((e) => e.toJson()).toList(),
+      'progress': progress?.map((e) => e.toJson()).toList(),
       'cargo': cargo.toJson(),
       'currentPrice': currentPrice,
       'currency': currency,
