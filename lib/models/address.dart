@@ -22,7 +22,7 @@ class Address {
       type: json['type'] as String? ?? '',
       lat: (json['lat'] as num?)?.toDouble() ?? 0.0,
       lng: (json['lng'] as num?)?.toDouble() ?? 0.0,
-      dateAt: json['dateAt'] as String? ?? '',
+      dateAt: json['dateAt'] as String? ?? json['date_at'] as String? ?? '',
     );
   }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../api_service.dart';
 import '../models/progress.dart';
 import '../l10n/app_localizations.dart';
+import 'common/custom_loader.dart';
 
 class OrderProgressWidget extends StatefulWidget {
   final int orderId;
@@ -55,7 +56,7 @@ class _OrderProgressWidgetState extends State<OrderProgressWidget> {
         child: Padding(
           padding: const EdgeInsets.all(8.0),
           child: _isLoading
-              ? const Center(child: CircularProgressIndicator())
+              ? const CustomLoader()
               : Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [

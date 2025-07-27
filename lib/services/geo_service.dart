@@ -1,43 +1,46 @@
 // lib/services/geo_service.dart
 import 'dart:async';
-import 'dart:convert';
+import 'dart:math';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'connectivity_service.dart';
-import '../database_helper.dart';
-import '../models/ltd_lng.dart';
+import '../services/local/location_local_service.dart';
+import '../services/remote/location_remote_service.dart';
+import '../models/location.dart';
 import '../constants.dart';
-import '../build_config.dart';
 
 class GeoService {
   final ConnectivityService _connectivityService = ConnectivityService();
-  final DatabaseHelper _dbHelper = DatabaseHelper.instance;
+  final LocationLocalService _locationLocalService = LocationLocalService();
+  final LocationRemoteService _locationRemoteService = LocationRemoteService();
   static final GeoService instance = GeoService._init();
   Timer? _locationTimer;
   Timer? _syncTimer;
-  List<LtdLng> _pendingPoints = [];
+  Timer? _batchSyncTimer;
+  List<Location> _pendingPoints = [];
   List<LatLng> _currentRoute = [];
   int? _currentOrderId;
+  LatLng? _lastSavedPoint;
+  int _lastOrderStatus = 0;
 
   GeoService._init();
 
-  Future<void> startTracking(int orderId) async {
+  Future<void> startTracking(int orderId, int orderStatus) async {
     _currentOrderId = orderId;
+    _lastOrderStatus = orderStatus;
+    if (orderStatus != 1) {
+      stopTracking();
+      return;
+    }
     await _requestLocationPermission();
     try {
       _currentRoute = await _fetchRoute(orderId);
-      await _dbHelper.upsertLocation(
-          orderId,
-          LtdLng(
-            lat: 0.0,
-            lng: 0.0,
-            time: DateTime.now().millisecondsSinceEpoch,
-            odometer: 0.0,
-            deviation: 0.0,
-            statusId: 0,
-          ));
+      await _locationLocalService.insert(Location(
+        id: null,
+        lat: 0.0,
+        lng: 0.0,
+      ));
     } catch (e) {
       print('Error fetching initial route: $e');
     }
@@ -46,44 +49,51 @@ class GeoService {
         Timer.periodic(Constants.locationTrackingInterval, (timer) async {
       try {
         final position = await Geolocator.getCurrentPosition();
-        final geoPoint = LtdLng(
-          lat: position.latitude,
-          lng: position.longitude,
-          time: DateTime.now().millisecondsSinceEpoch,
-          odometer: 0.0, // Потрібна логіка для одометра
-          deviation: await _dbHelper.getDeviation(orderId),
-          statusId: 0, // Потрібна логіка для statusId
-        );
-        await _dbHelper.upsertLocation(orderId, geoPoint);
-        _pendingPoints.add(geoPoint);
+        final currentLatLng = LatLng(position.latitude, position.longitude);
 
-        if (_currentRoute.isNotEmpty) {
-          final deviation = await _dbHelper.getDeviation(orderId);
-          if (deviation > Constants.maxDeviationMeters) {
-            try {
-              _currentRoute = await _fetchRoute(orderId,
-                  start: '${position.latitude},${position.longitude}');
-            } catch (e) {
-              print('Error updating route: $e');
-            }
+        // Не зберігаємо, якщо координата не змінилась або менше minMovementMeters
+        bool shouldSave = true;
+        if (_lastSavedPoint != null) {
+          final deviation = _distanceBetween(currentLatLng, _lastSavedPoint!);
+          if (deviation < Constants.minMovementMeters) {
+            shouldSave = false;
           }
+        }
+        if (shouldSave) {
+          final geoPoint = Location(
+            id: null,
+            lat: position.latitude,
+            lng: position.longitude,
+          );
+          await _locationLocalService.insert(geoPoint);
+          _pendingPoints.add(geoPoint);
+          _lastSavedPoint = currentLatLng;
         }
       } catch (e) {
         print('Error tracking location: $e');
       }
     });
 
+    // Batch sync timer: кожні batchSyncInterval секунд відправляємо не більше batchSyncCount точок
+    _batchSyncTimer =
+        Timer.periodic(Constants.batchSyncInterval, (timer) async {
+      await _batchSyncGeoPoints();
+    });
+
+    // Старий syncTimer для повної синхронізації (залишаємо для offline sync)
     _syncTimer = Timer.periodic(Constants.syncInterval, (timer) async {
-      await _syncGeoPoints();
+      await syncOfflineData();
     });
   }
 
   void stopTracking() {
     _locationTimer?.cancel();
     _syncTimer?.cancel();
+    _batchSyncTimer?.cancel();
     _currentOrderId = null;
     _pendingPoints.clear();
     _currentRoute.clear();
+    _lastSavedPoint = null;
   }
 
   Future<void> _requestLocationPermission() async {
@@ -110,137 +120,40 @@ class GeoService {
     if (!hasInternet) return _currentRoute;
 
     final token = await _getToken();
-    final response = await http.post(
-      Uri.parse('${BuildConfig.baseUrl}/geo/get_route'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({
-        'order_id': orderId.toString(),
-        if (start != null) 'start': start,
-      }),
-    );
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final route = (data['route'] as List)
-          .map((point) => LatLng(point[0] as double, point[1] as double))
-          .toList();
-      final db = await _dbHelper.database;
-      await db.update(
-        'orders',
-        {
-          'locations': jsonEncode(route
-              .map((e) => {'lat': e.latitude, 'lng': e.longitude})
-              .toList())
-        },
-        where: 'id = ?',
-        whereArgs: [orderId],
-      );
-      return route;
+    final response =
+        await _locationRemoteService.getRoute(orderId, token, start: start);
+    if (response != null) {
+      _currentRoute = response;
+      return _currentRoute;
     } else {
-      throw Exception('Failed to fetch route: ${response.statusCode}');
+      throw Exception('Failed to fetch route');
     }
   }
 
-  Future<void> _syncGeoPoints() async {
+  Future<void> _batchSyncGeoPoints() async {
     final hasInternet = await _connectivityService.hasInternetConnection();
     if (!hasInternet || _pendingPoints.isEmpty) return;
 
-    final token = await _getToken();
-    final response = await http.post(
-      Uri.parse('${BuildConfig.baseUrl}/geo/set-list'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({
-        'data': _pendingPoints
-            .map((point) => {
-                  'order_id': _currentOrderId,
-                  'lat': point.lat,
-                  'lng': point.lng,
-                  'time': point.time,
-                  'odometer': point.odometer,
-                  'deviation': point.deviation,
-                  'status_id': point.statusId,
-                })
-            .toList(),
-      }),
-    );
-
-    if (response.statusCode == 200) {
-      await _dbHelper.deleteLocations(_currentOrderId!);
-      _pendingPoints.clear();
+    final batch = _pendingPoints.take(Constants.batchSyncCount).toList();
+    for (final point in batch) {
+      await _locationRemoteService.insert(point);
     }
+    _pendingPoints.removeRange(0, batch.length);
   }
 
   Future<void> syncOfflineData() async {
     final hasInternet = await _connectivityService.hasInternetConnection();
     if (!hasInternet) return;
 
-    await _syncGeoPoints();
-
-    final expenses = await _dbHelper.getAllExpenses();
-    for (var expense in expenses) {
+    final pendingLocations = await _locationLocalService.getPendingLocations();
+    for (final location in pendingLocations) {
       try {
-        if (expense.isDeleted) {
-          await http.delete(
-            Uri.parse('${BuildConfig.baseUrl}/report/${expense.id}'),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer ${await _getToken()}',
-            },
-          );
-          await _dbHelper.deleteExpense(expense.time);
-        } else {
-          await http.post(
-            Uri.parse('${BuildConfig.baseUrl}/report/update'),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer ${await _getToken()}',
-            },
-            body: jsonEncode(expense.toJson()),
-          );
-          await _dbHelper.deleteExpense(expense.time);
-        }
+        await _locationRemoteService.insert(location);
+        await _locationLocalService.markForDeletionLocation(location.id!);
       } catch (e) {
-        print('Failed to sync expense: $e');
+        print('Failed to sync location: $e');
       }
     }
-
-    final files = await _dbHelper.getDownloadedFiles();
-    for (var file in files) {
-      try {
-        if (file.isDeleted) {
-          await http.delete(
-            Uri.parse('${BuildConfig.baseUrl}/order-document/${file.id}'),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer ${await _getToken()}',
-            },
-          );
-          await _dbHelper.deleteDownloadedFile(file.id);
-        } else {
-          final request = http.MultipartRequest(
-              'POST', Uri.parse('${BuildConfig.baseUrl}/order-document'));
-          request.headers['Authorization'] = 'Bearer ${await _getToken()}';
-          request.fields['order_id'] = file.orderId.toString();
-          request.fields['template_id'] = '1';
-          request.files
-              .add(await http.MultipartFile.fromPath('file', file.fileName));
-          final response = await request.send();
-          if (response.statusCode == 200) {
-            await _dbHelper.deleteDownloadedFile(file.id);
-          }
-        }
-      } catch (e) {
-        print('Failed to sync document: $e');
-      }
-    }
-
-    // Add sync for other models similarly
   }
 
   Future<String?> _getToken() async {
@@ -249,4 +162,20 @@ class GeoService {
   }
 
   List<LatLng> getCurrentRoute() => _currentRoute;
+
+  double _distanceBetween(LatLng a, LatLng b) {
+    const double earthRadius = 6371000; // meters
+    final lat1 = a.latitude * (3.141592653589793 / 180.0);
+    final lon1 = a.longitude * (3.141592653589793 / 180.0);
+    final lat2 = b.latitude * (3.141592653589793 / 180.0);
+    final lon2 = b.longitude * (3.141592653589793 / 180.0);
+
+    final dLat = lat2 - lat1;
+    final dLon = lon2 - lon1;
+
+    final aVal = (sin(dLat / 2) * sin(dLat / 2)) +
+        cos(lat1) * cos(lat2) * (sin(dLon / 2) * sin(dLon / 2));
+    final c = 2 * atan2(sqrt(aVal), sqrt(1 - aVal));
+    return earthRadius * c;
+  }
 }

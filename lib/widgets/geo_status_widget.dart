@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../l10n/app_localizations.dart';
+// Для лоадера використовуйте:
+// import 'common/custom_loader.dart';
 
 class GeoStatusWidget extends StatefulWidget {
   final Widget child;

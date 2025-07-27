@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../services/connectivity_service.dart';
 import '../services/geo_service.dart';
 import '../l10n/app_localizations.dart';
+// Для лоадера використовуйте:
+// import 'common/custom_loader.dart';
 
 class InternetStatusWidget extends StatefulWidget {
   final Widget child;

@@ -34,4 +34,15 @@ class Constants {
   static const Duration syncInterval =
       Duration(minutes: 1); // Синхронізація геоточок
   static const double maxDeviationMeters = 100.0; // Максимальне відхилення
+  static const Duration batchSyncInterval = Duration(seconds: 2);
+  static const int batchSyncCount = 100;
+  static const double minMovementMeters = 3.0;
+
+  // Токени та помилки
+  static const int tokenRefreshThresholdSeconds =
+      60; // За скільки секунд до закінчення життя токена оновлювати
+  static const Duration errorDisplayDuration =
+      Duration(seconds: 5); // Затримка для показу помилки
+
+  static bool useMockData = false; // Використовувати мок-сервіси
 }

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:inn_logist_app/build_config.dart';
+import 'package:inn_logist_app/constants.dart';
 import '../api_service.dart';
 import '../models/auth_request.dart';
 import 'main_screen.dart';
@@ -16,6 +18,7 @@ class _AuthScreenState extends State<AuthScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final ApiService _apiService = ApiService();
   bool _isLoading = false;
+  bool _useMock = Constants.useMockData;
 
   Future<void> _login() async {
     setState(() {
@@ -70,6 +73,22 @@ class _AuthScreenState extends State<AuthScreen> {
               ),
               obscureText: true,
             ),
+            const SizedBox(height: 16),
+            if (BuildConfig.environment == Constants.envDev)
+              Row(
+                children: [
+                  Checkbox(
+                    value: _useMock,
+                    onChanged: (val) {
+                      setState(() {
+                        _useMock = val ?? false;
+                        Constants.useMockData = _useMock;
+                      });
+                    },
+                  ),
+                  const Text('Використовувати демо (mock) дані'),
+                ],
+              ),
             const SizedBox(height: 16),
             _isLoading
                 ? const CircularProgressIndicator()

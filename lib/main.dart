@@ -1,16 +1,50 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/auth_screen.dart';
 import 'screens/main_screen.dart';
 import 'l10n/app_localizations.dart';
 import 'build_config.dart';
 import 'constants.dart';
+import 'providers/order_provider.dart';
+import 'providers/profile_provider.dart';
+import 'providers/expense_provider.dart';
+import 'providers/document_provider.dart';
+import 'providers/report_provider.dart';
+import 'providers/address_provider.dart';
+import 'providers/fuel_provider.dart';
+import 'providers/location_provider.dart';
+import 'core/routing/route_generator.dart';
+import 'services/sync_service.dart';
+import 'services/connectivity_service.dart';
 
 void main() {
-  const String environment = String.fromEnvironment('ENVIRONMENT', defaultValue: Constants.envDev);
+  const String environment =
+      String.fromEnvironment('ENVIRONMENT', defaultValue: Constants.envDev);
   BuildConfig.setEnvironment(environment);
-  runApp(const InnLogistApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => OrderProvider()),
+        ChangeNotifierProvider(create: (_) => ProfileProvider()),
+        ChangeNotifierProvider(create: (_) => ExpenseProvider()),
+        ChangeNotifierProvider(create: (_) => DocumentProvider()),
+        ChangeNotifierProvider(create: (_) => ReportProvider()),
+        ChangeNotifierProvider(create: (_) => AddressProvider()),
+        ChangeNotifierProvider(create: (_) => FuelProvider()),
+        ChangeNotifierProvider(create: (_) => LocationProvider()),
+        // Додавайте інші провайдери тут
+      ],
+      child: const InnLogistApp(),
+    ),
+  );
+  // Синхронізація при старті
+  SyncService.instance.syncAll();
+  // Синхронізація при зміні інтернету
+  ConnectivityService().onConnectivityChanged.listen((_) {
+    SyncService.instance.syncAll();
+  });
 }
 
 class InnLogistApp extends StatelessWidget {
@@ -35,6 +69,7 @@ class InnLogistApp extends StatelessWidget {
         const Locale('uk', ''),
       ],
       home: const AuthCheckScreen(),
+      onGenerateRoute: RouteGenerator.generateRoute,
     );
   }
 }
