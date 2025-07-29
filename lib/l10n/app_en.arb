@@ -30,5 +30,25 @@
     "placeholders": {
       "error": {}
     }
-  }
+  },
+  "appLogo": "INN.LOGIST Driver",
+  "welcomeSubtitle": "App for drivers",
+  "welcomeFeatures": "Transport control\nOrder receiving\nReporting",
+  "welcomeButton": "Login or Register",
+  "orderStatus": "Status",
+  "orderStatusActive": "Active",
+  "orderStatusPlanned": "Planned",
+  "orderStatusCompleted": "Completed",
+  "orderStatusCancelled": "Cancelled",
+  "orderStatusSearch": "Search",
+  "orderStatusUnknown": "Unknown",
+  "orderArrivalTime": "Estimated arrival time",
+  "orderCargo": "Cargo",
+  "orderStage": "Stage",
+  "noOrdersYet": "Your first order will appear here soon",
+  "firstName": "First name",
+  "lastName": "Last name",
+  "phone": "Phone",
+  "language": "Language",
+  "save": "Save"
 }

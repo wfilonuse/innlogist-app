@@ -45,4 +45,12 @@ class Constants {
       Duration(seconds: 5); // Затримка для показу помилки
 
   static bool useMockData = false; // Використовувати мок-сервіси
+
+  // Доступні мови
+  static const List<String> supportedLanguages = ['uk', 'en'];
+  static const Map<String, String> languageNames = {
+    'uk': 'Українська',
+    'en': 'English',
+  };
+  static const String defaultLanguage = 'uk';
 }

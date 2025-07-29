@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:inn_logist_app/screens/auth_screen.dart';
+import 'package:inn_logist_app/providers/auth_provider.dart';
+import 'package:inn_logist_app/providers/profile_provider.dart';
+import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import 'orders_screen.dart';
 import 'profile_screen.dart';
 import 'expense_screen.dart';
 import 'map_screen.dart';
 import 'document_screen.dart';
 import 'report_screen.dart';
-import '../l10n/app_localizations.dart';
-import '../api_service.dart';
+import 'auth_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -21,72 +23,110 @@ class _MainScreenState extends State<MainScreen> {
 
   static const List<Widget> _screens = [
     OrdersScreen(),
-    ProfileScreen(),
-    ExpenseScreen(),
-    MapScreen(),
     DocumentScreen(),
     ReportScreen(),
+    MapScreen(),
+    ProfileScreen(),
+    ExpenseScreen(),
   ];
 
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
+      Navigator.pop(context); // Закриваємо Drawer після вибору
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+    final profileProvider = Provider.of<ProfileProvider>(context);
+    final userEmail = profileProvider.driver != null
+        ? profileProvider.driver?.email ?? ""
+        : "";
+    final userAvatar = profileProvider.driver != null
+        ? profileProvider.driver?.avatar ??
+            "https://randomuser.me/api/portraits/men/1.jpg"
+        : "https://randomuser.me/api/portraits/men/1.jpg";
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context).translate('appTitle')),
+        title: Text(loc.translate('appTitle')),
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
-              try {
-                await ApiService().logout();
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const AuthScreen()),
-                );
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                      content: Text(AppLocalizations.of(context)
-                          .translate('error', args: {'error': e.toString()}))),
-                );
-              }
+              final authProvider =
+                  Provider.of<AuthProvider>(context, listen: false);
+              await authProvider.logout();
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const AuthScreen()),
+              );
             },
+            tooltip: loc.translate('logout'),
           ),
         ],
       ),
-      body: _screens[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        items: [
-          BottomNavigationBarItem(
-              icon: const Icon(Icons.list),
-              label: AppLocalizations.of(context).translate('orders')),
-          BottomNavigationBarItem(
-              icon: const Icon(Icons.person),
-              label: AppLocalizations.of(context).translate('profile')),
-          BottomNavigationBarItem(
-              icon: const Icon(Icons.attach_money),
-              label: AppLocalizations.of(context).translate('expenses')),
-          BottomNavigationBarItem(
-              icon: const Icon(Icons.map),
-              label: AppLocalizations.of(context).translate('map')),
-          BottomNavigationBarItem(
-              icon: const Icon(Icons.document_scanner),
-              label: AppLocalizations.of(context).translate('documents')),
-          BottomNavigationBarItem(
-              icon: const Icon(Icons.bar_chart),
-              label: AppLocalizations.of(context).translate('reports')),
-        ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
-        onTap: _onItemTapped,
+      drawer: Drawer(
+        child: Column(
+          children: [
+            UserAccountsDrawerHeader(
+              accountName: const Text(''),
+              accountEmail: Text(userEmail),
+              currentAccountPicture: CircleAvatar(
+                backgroundImage: NetworkImage(userAvatar),
+              ),
+              decoration: const BoxDecoration(
+                color: Color(0xFF4A90E2),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.list),
+              title: Text(loc.translate('orders')),
+              selected: _selectedIndex == 0,
+              onTap: () => _onItemTapped(0),
+            ),
+            ListTile(
+              leading: const Icon(Icons.document_scanner),
+              title: Text(loc.translate('documents')),
+              selected: _selectedIndex == 1,
+              onTap: () => _onItemTapped(1),
+            ),
+            ListTile(
+              leading: const Icon(Icons.bar_chart),
+              title: Text(loc.translate('reports')),
+              selected: _selectedIndex == 2,
+              onTap: () => _onItemTapped(2),
+            ),
+            ListTile(
+              leading: const Icon(Icons.map),
+              title: Text(loc.translate('map')),
+              selected: _selectedIndex == 3,
+              onTap: () => _onItemTapped(3),
+            ),
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: Text(loc.translate('profile')),
+              selected: _selectedIndex == 4,
+              onTap: () => _onItemTapped(4),
+            ),
+            ListTile(
+              leading: const Icon(Icons.attach_money),
+              title: Text(loc.translate('expenses')),
+              selected: _selectedIndex == 5,
+              onTap: () => _onItemTapped(5),
+            ),
+          ],
+        ),
       ),
+      body: _screens[_selectedIndex],
     );
   }
 }

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/auth_screen.dart';
 import 'screens/main_screen.dart';
+import 'screens/welcome_screen.dart';
 import 'l10n/app_localizations.dart';
 import 'build_config.dart';
 import 'constants.dart';
@@ -53,7 +54,7 @@ class InnLogistApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Inn Logist App',
+      title: AppLocalizations.of(context).translate('appLogo'),
       theme: ThemeData(
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
@@ -68,7 +69,7 @@ class InnLogistApp extends StatelessWidget {
         const Locale('en', ''),
         const Locale('uk', ''),
       ],
-      home: const AuthCheckScreen(),
+      home: const WelcomeScreen(),
       onGenerateRoute: RouteGenerator.generateRoute,
     );
   }

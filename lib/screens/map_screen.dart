@@ -1,7 +1,6 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:inn_logist_app/api_service.dart';
 import '../services/geo_service.dart';
 import '../services/connectivity_service.dart';
 import '../widgets/internet_status_widget.dart';
@@ -9,6 +8,8 @@ import '../widgets/geo_status_widget.dart';
 import '../widgets/order_progress_widget.dart';
 import '../models/address.dart';
 import '../l10n/app_localizations.dart';
+import 'package:provider/provider.dart';
+import '../providers/address_provider.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -39,8 +40,13 @@ class _MapScreenState extends State<MapScreen> {
   Future<void> _searchAddresses() async {
     if (_searchController.text.isNotEmpty) {
       try {
-        _addresses =
-            await ApiService().autocompleteAddress(_searchController.text);
+        final provider = Provider.of<AddressProvider>(context, listen: false);
+        await provider.fetchItems();
+        _addresses = provider.items
+            .where((a) => a.address
+                .toLowerCase()
+                .contains(_searchController.text.toLowerCase()))
+            .toList();
         setState(() {});
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(

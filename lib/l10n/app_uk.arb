@@ -27,5 +27,25 @@
       "error": {}
     }
   },
-  "error": "Помилка: {error}"
+  "error": "Помилка: {error}",
+  "appLogo": "INN.LOGIST Driver",
+  "welcomeSubtitle": "Приложення для водіїв",
+  "welcomeFeatures": "Контроль транспорту\nОтримання замовлень\nПодача звітності",
+  "welcomeButton": "Вхід або реєстрація",
+  "orderStatus": "Статус",
+  "orderStatusActive": "Активний",
+  "orderStatusPlanned": "Запланований",
+  "orderStatusCompleted": "Завершений",
+  "orderStatusCancelled": "Відмінений",
+  "orderStatusSearch": "Пошук",
+  "orderStatusUnknown": "Невідомий",
+  "orderArrivalTime": "Орієнтовний час прибуття",
+  "orderCargo": "Вантаж",
+  "orderStage": "Етап",
+  "noOrdersYet": "Скоро тут з'явиться ваш перший заказ",
+  "firstName": "Ім'я",
+  "lastName": "Прізвище",
+  "phone": "Телефон",
+  "language": "Мова",
+  "save": "Зберегти"
 }

@@ -18,7 +18,7 @@ class GeoService {
   Timer? _locationTimer;
   Timer? _syncTimer;
   Timer? _batchSyncTimer;
-  List<Location> _pendingPoints = [];
+  final List<Location> _pendingPoints = [];
   List<LatLng> _currentRoute = [];
   int? _currentOrderId;
   LatLng? _lastSavedPoint;
@@ -26,10 +26,22 @@ class GeoService {
 
   GeoService._init();
 
-  Future<void> startTracking(int orderId, int orderStatus) async {
+  Future<void> startTracking(int orderId, [int? orderStatus]) async {
     _currentOrderId = orderId;
-    _lastOrderStatus = orderStatus;
-    if (orderStatus != 1) {
+    // Якщо orderStatus не передано, беремо з локального сервісу
+    int status = orderStatus ?? 0;
+    if (orderStatus == null) {
+      // Спробуємо отримати статус замовлення з локального сервісу
+      final orders = await _locationLocalService.getAll();
+      final order = orders.firstWhere((o) => (o as dynamic).id == orderId);
+      if ((order as dynamic).status != null) {
+        status = int.tryParse((order as dynamic).status.toString()) ?? 0;
+      }
+    }
+    _lastOrderStatus = status;
+
+    // Запускаємо трекінг тільки якщо статус "Активний" (1)
+    if (_lastOrderStatus != 1) {
       stopTracking();
       return;
     }
@@ -74,13 +86,11 @@ class GeoService {
       }
     });
 
-    // Batch sync timer: кожні batchSyncInterval секунд відправляємо не більше batchSyncCount точок
     _batchSyncTimer =
         Timer.periodic(Constants.batchSyncInterval, (timer) async {
       await _batchSyncGeoPoints();
     });
 
-    // Старий syncTimer для повної синхронізації (залишаємо для offline sync)
     _syncTimer = Timer.periodic(Constants.syncInterval, (timer) async {
       await syncOfflineData();
     });
